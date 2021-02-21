@@ -9,8 +9,8 @@ from flask import Flask
 from flask_restful import Api, Resource
 import requests
 
-WEATHER_API_URL = "https://api.openweathermap.org/data/2.5/weather?q=Lubbock&appid=d06270466ac316cf277ff171c74f9906"
-
+WEATHER_API_URL = "http://api.openweathermap.org/data/2.5/weather"
+payload = {"q": "Lubbock", "appid": "d06270466ac316cf277ff171c74f9906", "units": "imperial"}
 
 def get_news():
     PATH1 = "C:\Program Files (x86)\chromedriver.exe"
@@ -25,19 +25,19 @@ def get_news():
     element.click()
 
     first_News_link = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//*[@id='rso']/div[1]/g-card/div/div/div[2]/a")))
-    print(first_News_link.get_attribute("href"))
+    #print(first_News_link.get_attribute("href"))
     first_News = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//*[@id='rso']/div[1]/g-card/div/div/div[2]/a/div/div[2]/div[2]")))
-    print(first_News.text + '\n')
+    #print(first_News.text + '\n')
 
     second_News_link = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//*[@id='rso']/div[2]/g-card/div/div/div[2]/a")))
-    print(second_News_link.get_attribute("href"))
+    #print(second_News_link.get_attribute("href"))
     second_News = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH,"//*[@id='rso']/div[2]/g-card/div/div/div[2]/a/div/div[2]/div[2]")))
-    print(second_News.text + '\n')
+    #print(second_News.text + '\n')
 
     third_News_link = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//*[@id='rso']/div[3]/g-card/div/div/div[2]/a")))
-    print(third_News_link.get_attribute("href"))
+    #print(third_News_link.get_attribute("href"))
     third_News = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH,"//*[@id='rso']/div[3]/g-card/div/div/div[2]/a/div/div[2]/div[2]")))
-    print(third_News.text)
+    #print(third_News.text)
 
     news_obj = {"article1_link": unquote(first_News_link.get_attribute("href")),
                 "article1_text": first_News.text,
@@ -71,7 +71,7 @@ def get_covid_stats():
             employees.append(tech_covid_data_list[x].split(" ")[3])
             total.append(tech_covid_data_list[x].split(" ")[4])
 
-    print(students, employees, total)
+    #print(students, employees, total)
 
     covid_data_JSON = {"students": [{"total_reported": students[0],
                                      "new_recovered": students[1],
@@ -90,7 +90,7 @@ def get_covid_stats():
                                   "total_active": total[4]}]
                        }
 
-    print(json.dumps(covid_data_JSON, indent = 1))
+    #print(json.dumps(covid_data_JSON, indent = 1))
 
     driver.close()
     return covid_data_JSON
@@ -102,10 +102,10 @@ def get_rec_times():
 
     driver.get("https://www.depts.ttu.edu/recsports/facilities/hours.php")
     TTU_Rec_Hours =driver.find_element_by_xpath("//*[@id='calendar']")
-    print(TTU_Rec_Hours.text + "\n")
+    #print(TTU_Rec_Hours.text + "\n")
 
     ttu_rec_text_list = TTU_Rec_Hours.text.split('\n')
-    print(ttu_rec_text_list)
+    #print(ttu_rec_text_list)
     ttu_rec_info = list()
 
     for x in range(0, len(ttu_rec_text_list)):
@@ -121,7 +121,7 @@ def get_rec_times():
     for x in range(0, len(ttu_rec_info)):
         ttu_rec_info_dict.update({("line" + str(x)): ttu_rec_info[x]})
 
-    print(ttu_rec_info_dict)
+    #print(ttu_rec_info_dict)
     driver.close()
     return ttu_rec_info_dict
 
@@ -219,17 +219,31 @@ def get_lib_times():
             "sat": law_lib_stat_sat
         }]
     }
-    print(json.loads(json.dumps(lib_data_JSON)))
+    #print(json.loads(json.dumps(lib_data_JSON)))
     driver.close()
     return lib_data_JSON
 
 def get_weather():
-    lbb_weather = requests.get(WEATHER_API_URL)
+    lbb_weather = requests.get(WEATHER_API_URL, params=payload)
+    print(lbb_weather.text)
+    lbb_weather_JSON = json.loads(lbb_weather.text)
+    print(lbb_weather_JSON["main"]["temp"])
+
+    lbb_weather_temp = lbb_weather_JSON["main"]["temp"]
+    lbb_weather_feels_like = lbb_weather_JSON["main"]["feels_like"]
+    lbb_weather_desc = lbb_weather_JSON["weather"][0]["description"]
+
+    lbb_weather_output_JSON = {
+        "temp": lbb_weather_JSON["main"]["temp"],
+        "feels_like": lbb_weather_JSON["main"]["feels_like"],
+        "description": lbb_weather_JSON["weather"][0]["description"]
+    }
+    #print(lbb_weather_output_JSON)
+    return lbb_weather_output_JSON
 
 
 app = Flask(__name__)
 api = Api(app)
-
 
 
 class CovidStats(Resource):
@@ -238,7 +252,35 @@ class CovidStats(Resource):
         return temp
 
 
+class LibTimings(Resource):
+    def get(self):
+        temp = get_lib_times()
+        return temp
+
+
+class RecTimings(Resource):
+    def get(self):
+        temp = get_rec_times()
+        return temp
+
+
+class TopNews(Resource):
+    def get(self):
+        temp = get_news()
+        return temp
+
+
+class LbbWeather(Resource):
+    def get(self):
+        temp = get_weather()
+        return temp
+
+
 api.add_resource(CovidStats, "/ttuCovidStats")
+api.add_resource(LibTimings, "/ttuLibTimings")
+api.add_resource(RecTimings, "/ttuRecTimings")
+api.add_resource(TopNews, "/ttuTopNews")
+api.add_resource(LbbWeather, "/ttuLbbWeather")
 
 if __name__ == "__main__":
     app.run(debug=True)
