@@ -5,25 +5,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import unquote
 import json
+from flask import Flask
+from flask_restful import Api, Resource
 import requests
 
-'''
-PATH = "C:\Program Files (x86)\chromedriver.exe"
-driver = webdriver.Chrome(PATH)
-
-driver.get("https://www.depts.ttu.edu/communications/emergency/coronavirus/")
-tech_COVID_Data = driver.find_element_by_xpath("//table")
-print(tech_COVID_Data.text + "\n")
-
-
-driver.get("https://www.depts.ttu.edu/recsports/facilities/hours.php")
-TTU_Rec_Hours =driver.find_element_by_xpath("//*[@id='calendar']")
-print(TTU_Rec_Hours.text + "\n")
-
-driver.get("https://cal.library.ttu.edu/hours/")
-TTU_library_Hours = driver.find_element_by_xpath("//*[@id='s-lc-box-14040-container-tab0']/div")
-print(TTU_library_Hours.text)
-'''
+WEATHER_API_URL = "https://api.openweathermap.org/data/2.5/weather?q=Lubbock&appid=d06270466ac316cf277ff171c74f9906"
 
 
 def get_news():
@@ -237,6 +223,25 @@ def get_lib_times():
     driver.close()
     return lib_data_JSON
 
+def get_weather():
+    lbb_weather = requests.get(WEATHER_API_URL)
+
+
+app = Flask(__name__)
+api = Api(app)
+
+
+
+class CovidStats(Resource):
+    def get(self):
+        temp = get_covid_stats()
+        return temp
+
+
+api.add_resource(CovidStats, "/ttuCovidStats")
+
+if __name__ == "__main__":
+    app.run(debug=True)
 #get_news()
 #get_lib_times()
 #get_rec_times()
